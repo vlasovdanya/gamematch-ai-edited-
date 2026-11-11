@@ -1,0 +1,25 @@
+services:
+  api:
+    build: .
+    env_file: [.env]
+    ports: ["8000:8000"]
+    volumes:
+      - "./.cache:/app/.cache"
+      - "./data:/app/data"
+    command: ["sh", "-c", "python scripts/build_index.py && uvicorn gamematch.api:app --host 0.0.0.0 --port 8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  ui:
+    build: .
+    env_file: [.env]
+    environment:
+      API_URL: http://api:8000
+    command: ["streamlit", "run", "streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+    ports: ["8501:8501"]
+    depends_on:
+      api:
+        condition: service_healthy
